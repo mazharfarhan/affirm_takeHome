@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -67,7 +68,7 @@ public class FacilityMapperService {
 
             for(Facility facility: facilitiesData){
                 Double difference = facility.getAmount() - loan.getAmount();
-                if( difference > 0 && checkloanelgibilitybycovenant(loan, facilityCovenantMap.get(facility.getId()))){
+                if( difference > 0 && checkLoneEgilbilityByCovenant(loan, facilityCovenantMap.get(facility.getId()))){
                     facility.setAmount(difference);
                     loanFacilityMap.putIfAbsent(loan.getId(), facility.getId());
                     break;
@@ -75,10 +76,12 @@ public class FacilityMapperService {
             }
         }
 
+
+        generateYield(loanFacilityMap);
         return loanFacilityMap;
     }
 
-    private boolean checkloanelgibilitybycovenant(Loan loan, List<Covenant> covenants){
+    private boolean checkLoneEgilbilityByCovenant(Loan loan, List<Covenant> covenants){
         for(Covenant c : covenants){
             if(c.getState().equals(loan.getState()) || c.getMaxDefaultLikeliHood() < loan.getDefaultLikeHood()){
                  return false;
@@ -110,6 +113,36 @@ public class FacilityMapperService {
              bankToFacilityMap.computeIfAbsent(facility.getBankId(), x->new ArrayList<>()).add(facility);
         }
         return bankToFacilityMap;
+    }
+
+
+    private double calculateYield(Loan loan, Facility facility){
+        Double defaultLikeHood = loan.getDefaultLikeHood();
+        Long amount = loan.getAmount();
+        return ((1 - defaultLikeHood) * loan.getInterestRate() * amount) - (loan.getDefaultLikeHood() * amount) - (facility.getInterestRate() * amount);
+    }
+
+    private Map<Integer, Integer> generateYield(Map<Integer, Integer> loanFacilityMap){
+
+        Map<Integer, Facility> facilityMap = new HashMap<>();
+        for(Facility facility: facilitiesData){
+            facilityMap.putIfAbsent(facility.getId(), facility);
+        }
+
+        Map<Integer, Loan> loanMap = new HashMap<>();
+        for(Loan loan: loansData){
+            loanMap.putIfAbsent(loan.getId(), loan);
+        }
+
+        Map<Integer, Integer> yieldMap = new HashMap<>();
+
+        for(Integer key : loanFacilityMap.keySet()){
+             yieldMap.put(loanFacilityMap.get(key), (int) (yieldMap.getOrDefault(loanFacilityMap.get(key), 0) +
+                                  calculateYield(loanMap.get(key), facilityMap.get(loanFacilityMap.get(key)))));
+        }
+
+        csvFileParser.createCSVFile(Constants.OUTPUT_BASE_PATH + Constants.YIELDS_PATH, yieldMap, "facility_id", "expected_yield");
+        return yieldMap;
     }
 
 
