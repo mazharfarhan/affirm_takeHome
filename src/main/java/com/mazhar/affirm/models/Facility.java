@@ -4,17 +4,13 @@ package com.mazhar.affirm.models;
 import java.util.List;
 
 public class Facility {
-
-
-
-
-    private Long amount;
+    private Double amount;
     private double interestRate;
     private int id;
     private int bankId;
 
     public Facility(List<String> data) {
-        this.amount = Long.valueOf(data.get(0));
+        this.amount = Double.valueOf(data.get(0));
         this.interestRate = Double.parseDouble(data.get(1));
         this.id = Integer.parseInt(data.get(2));
         this.bankId = Integer.parseInt(data.get(3));
@@ -29,7 +25,7 @@ public class Facility {
         return bankId;
     }
 
-    public Long getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
@@ -37,7 +33,7 @@ public class Facility {
         return interestRate;
     }
 
-    public void setAmount(Long amount) {
+    public void setAmount(Double amount) {
         this.amount = amount;
     }
 }

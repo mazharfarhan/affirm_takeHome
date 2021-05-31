@@ -26,13 +26,14 @@ public class FacilityMapperService {
     private List<Loan> loansData = new ArrayList<>();
     private List<Covenant> covenantsData = new ArrayList<>();
 
-    private void readInputFiles() throws IllegalArgumentException{
+    private void generateInputDomainData() throws IllegalArgumentException{
         List<List<String>> bankDataList = csvFileParser.getRecords(Constants.BASE_PATH + Constants.BANKS_PATH);
         List<List<String>> facilitiesDataList = csvFileParser.getRecords(Constants.BASE_PATH + Constants.FACILITIES_PATH);
         List<List<String>> covenantsDataList = csvFileParser.getRecords(Constants.BASE_PATH + Constants.COVENANTS_PATH);
         List<List<String>> loansDataList = csvFileParser.getRecords(Constants.BASE_PATH + Constants.LOANS_PATH);
 
-        if(CollectionUtils.isEmpty(bankData) || CollectionUtils.isEmpty(facilitiesData) || CollectionUtils.isEmpty(covenantsData) || CollectionUtils.isEmpty(loansData)){
+        if(CollectionUtils.isEmpty(bankDataList) || CollectionUtils.isEmpty(facilitiesDataList) || CollectionUtils.isEmpty(covenantsDataList) ||
+                CollectionUtils.isEmpty(loansDataList)){
             log.error("ERROR-CODE:12 - The data passed to the program is invalid, please verify if all the data files are valid");
             throw new IllegalArgumentException("Invalid data passed to the program");
         }
@@ -55,13 +56,18 @@ public class FacilityMapperService {
     }
 
     public Map<Integer, Integer> generateLoanToFacilityMapping(){
-        Collections.sort(facilitiesData, (a, b) -> (int) ((a.getAmount() * a.getInterestRate()) - (b.getAmount() * b.getInterestRate())));
 
+        generateInputDomainData();
+        Map<Integer, List<Facility>> bankToFacilityMap = getBankToFacilityMap();
+        Map<Integer, List<Covenant>> facilityCovenantMap = getFacilityCovenantMap(bankToFacilityMap);
+
+        Collections.sort(facilitiesData, Comparator.comparingDouble(Facility::getInterestRate));
         Map<Integer, Integer> loanFacilityMap = new HashMap<>();
         for(Loan loan: loansData){
+
             for(Facility facility: facilitiesData){
-                long difference = facility.getAmount() - loan.getAmount();
-                if( difference > 0 && checkloanelgibilitybycovenant(loan, facility)){
+                Double difference = facility.getAmount() - loan.getAmount();
+                if( difference > 0 && checkloanelgibilitybycovenant(loan, facilityCovenantMap.get(facility.getId()))){
                     facility.setAmount(difference);
                     loanFacilityMap.putIfAbsent(loan.getId(), facility.getId());
                     break;
@@ -72,17 +78,14 @@ public class FacilityMapperService {
         return loanFacilityMap;
     }
 
-    private boolean checkloanelgibilitybycovenant(Loan loan, Facility facility){
-        Map<Integer, List<Facility>> bankToFacilityMap = getBankToFacilityMap();
-        Map<Integer, List<Covenant>> facilityCovenantMap = getFacilityCovenantMap(bankToFacilityMap);
-
-        for(Covenant covenant : facilityCovenantMap.get(facility.getId())){
-            if(!covenant.getState().equals(loan.getState()) && covenant.getMaxDefaultLikeliHood() > loan.getDefaultLikeHood()){
-                 return true;
+    private boolean checkloanelgibilitybycovenant(Loan loan, List<Covenant> covenants){
+        for(Covenant c : covenants){
+            if(c.getState().equals(loan.getState()) || c.getMaxDefaultLikeliHood() < loan.getDefaultLikeHood()){
+                 return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     private Map<Integer, List<Covenant>> getFacilityCovenantMap(Map<Integer, List<Facility>> bankToFacilityMap) {

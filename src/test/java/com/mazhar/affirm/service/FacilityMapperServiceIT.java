@@ -8,18 +8,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.Map;
 
 @SpringBootTest(classes = AffirmApplication.class)
 public class FacilityMapperServiceIT {
 
     @Autowired
-    private CSVFileParser csvFileParser;
+    private FacilityMapperService facilityMapperService;
 
 
     @Test
-    public void testReadFile(){
-        List<List<String>> records = csvFileParser.getRecords("src/input/banks.csv");
-        Assert.notEmpty(records, "File is not empty");
+    public void testGenerateMapping(){
+        Map<Integer, Integer> loanMap = facilityMapperService.generateLoanToFacilityMapping();
+        Assert.notEmpty(loanMap, "Not empty");
     }
 
 

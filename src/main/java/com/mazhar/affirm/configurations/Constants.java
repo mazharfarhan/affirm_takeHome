@@ -2,7 +2,7 @@ package com.mazhar.affirm.configurations;
 
 public final class Constants {
 
-    public static final String BASE_PATH = "src/";
+    public static final String BASE_PATH = "src/input/";
 
     public static final String FACILITIES_PATH = "facilities.csv";
     public static final String BANKS_PATH = "banks.csv";
