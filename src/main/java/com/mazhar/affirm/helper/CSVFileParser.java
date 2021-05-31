@@ -5,8 +5,11 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 @Service
@@ -25,7 +28,7 @@ public class CSVFileParser {
 
         log.info("Reading the input file - {}", fileName);
         List<List<String>> records = new ArrayList<>();
-        try(Scanner scanner = new Scanner(new File(fileName));){
+        try(Scanner scanner = new Scanner(new File(fileName))){
             while(scanner.hasNextLine()){
                 records.add(getRecordFromLine(scanner.nextLine()));
             }
@@ -54,6 +57,24 @@ public class CSVFileParser {
             }
         }
         return values;
+    }
+
+
+    public void createCSVFile(String filepath, Map<Integer, ?> data, String key, String value)
+    {
+
+        try(FileWriter fileWriter = new FileWriter(new File(filepath))){
+
+            fileWriter.append(key).append(",").append(value).append(System.lineSeparator());
+            for(Integer mapKey: data.keySet()){
+                fileWriter.append(String.valueOf(mapKey)).append(",").append(String.valueOf(data.get(mapKey)));
+                fileWriter.append(System.lineSeparator());
+            }
+        } catch (IOException e) {
+            log.error("ERROR-CODE:14 - Failed to create the output csv file - {}", filepath);
+        }
+
+
     }
 
 
